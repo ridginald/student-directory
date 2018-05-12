@@ -1,18 +1,12 @@
 @students = [] # an empty array ccessible by all methods
-def input_students
-  puts "Please enter the names of the students"
-  puts "To finish, just hit return twice"
-  # get the first name
-  name = STDIN.gets.chomp
-  # while the name is not empty, repeat this code
-  while !name.empty? do
-    # add the student hash to the array
-    @students << {name: name, cohort: :november}
-    puts "Now we have #{@students.count} students"
-    # get another name from the user
-    name = STDIN.gets.chomp
-  end
+def print_menu
+  puts "1. Input the students"
+  puts "2. Show the students"
+  puts "3. Save the list of students.csv"
+  puts "4. Load the list of students.csv"
+  puts "9. Exit" # 9 because we'll be adding more items
 end
+
 def interactive_menu
   loop do
     print_menu
@@ -20,71 +14,131 @@ def interactive_menu
   end
 end
 
-  def print_menu
-    puts "1. Input the students"
-    puts "2. Show the students"
-    puts "3. Save the list of students.csv"
-    puts "4. Load the list of students.csv"
-    puts "9. Exit" # 9 because we'll be adding more items
+def process(selection)
+  case selection
+    when "1"
+      input_students
+    when "2"
+      show_students
+    when "3"
+      save_students
+    when "4"
+      load_students
+    when "9"
+      exit # this will cause the program to terminate
+    else
+      puts "I don't know what you mean, try again"
+      # 4. repeat from step 1
   end
+end
 
-  def show_students
-    print_header
-    print_student_list
-    print_footer(students)
+def students_access(name, cohort, age)
+  @students << {name: name, cohort: cohort.to_sym, age: age}
+end
+
+#let's put all students into an array
+def input_students
+  puts "Please enter the name, cohort (month), age, for each student"
+  puts "To finish, just hit return twice"
+  months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+  # get the first name, cohort and age
+  puts "Name: "
+  name = STDIN.gets.delete("\n").capitalize
+  puts "Cohort: "
+  cohort = STDIN.gets.delete("\n").capitalize
+  # while the name is not empty, repeat this code
+  while !months.include?(cohort) && !name.empty?
+    puts "Please enter a valid cohort (month)"
+    cohort = STDIN.gets.delete("\n").capitalize
   end
-
-    def process(selection)
-      case selection
-        when "1"
-          input_students
-        when "2"
-          show_students
-        when "3"
-          save_students
-        when "4"
-          load_students
-        when "9"
-          exit # this will cause the program to terminate
-        else
-          puts "I don't know what you mean, try again"
-          # 4. repeat from step 1
-      end
+  puts "Age: "
+  age = STDIN.gets.delete("\n")
+  # while the name is not empty, repeat
+  while !name.empty? do
+    if age.empty?
+      age = "33"
     end
-def print_header
-  puts "The students of Villians Academy"
-  puts "-------------"
+    # add the student hash to the array
+    students_access(name, cohort, age)
+    if @students.count == 1
+    puts "Now we have 1 student"
+    else
+    puts "Now we have #{@students.count} students"
+    end
+
+  # get another name, cohort, age from the user
+  puts "Name: "
+    name = STDIN.gets.delete("\n").capitalize
+    if !name.empty?
+      puts "Cohort: "
+      cohort = STDIN.gets.delete("\n").capitalize
+      while !months.include?(cohort) && !name.empty?
+        puts "Please enter a valid cohort (month):"
+        cohort = STDIN.gets.delete("\n").capitalize
+      end
+      puts "Age: "
+      age = STDIN.gets.delete("\n")
+    end
+  end
+
+# return the array of students
+@students
 end
+
+def show_students
+  print_header
+  print_student_list
+  print_footer(@students)
+end
+
+def print_header
+  puts ""
+  puts "The students of Villians Academy".center(50)
+  puts "-------------".center(50)
+end
+
 def print_student_list
-  students.each do |student|
-    puts "#{student[:name]} (#{student[:cohort]} cohort)"
+  if @students.count > 0
+    @students.group_by {|student| student[:cohort]}.map do |month, students|
+      puts ""
+      puts "#{month}".center(50, "--")
+      students.map{|student| puts "#{student[:name]}".center(50)}
+  end
   end
 end
+
 def print_footer(students)
-  puts "Overall, we have #{@students.count} great students"
+  puts "\nOverall, we have #{@students.count} great students".center(50)
 end
+
 def save_students
   # open the file for writing
   file = File.open("students.csv", "w")
   # iterate over the array of students
   @students.each do |student|
-    student_data = [student[:name], student[:cohort]]
+    student_data = [student[:name], student[:cohort], student[:age]]
     csv_line = student_data.join(",")
     file.puts csv_line
   end
   file.close
 end
+
 def load_students(filename = "students.csv")
   file = File.open("students.csv", "r")
   file.readlines.each do |line|
-  name, cohort = line.chomp.split(',')
-    @students << {name: name, cohort: cohort.to_sym}
+  name, cohort, age = line.chomp.split(',')
+    students_access(name, cohort, age)
   end
   file.close
 end
+
 def try_load_students
   filename = ARGV.first # first argument from the command line
-  return if filename.nil? # get out of the method if it isn't given
+  if filename.nil?
+    filename = "students.csv" # loads students.csv default if no file name provided
+  end
+
   if File.exists?(filename) # if it exists
     load_students(filename)
     puts "Loaded #{@students.count} from #{filename}"
